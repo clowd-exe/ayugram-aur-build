@@ -31,20 +31,20 @@ jobs:
           printf '%%wheel ALL=(ALL) NOPASSWD: ALL\n' > /etc/sudoers.d/wheel
           chmod 0440 /etc/sudoers.d/wheel
 
-      - name: Install paru-bin
+      - name: Build libtg_owt-git (AUR dependency)
         run: |
-          sudo -u builder -H git clone --depth=1 https://aur.archlinux.org/paru-bin.git /home/builder/paru-bin
-          sudo -u builder -H bash -lc 'cd ~/paru-bin && makepkg -si --noconfirm --noprogressbar'
+          sudo -u builder -H git clone --depth=1 https://aur.archlinux.org/libtg_owt-git.git /home/builder/libtg_owt-git
+          sudo -u builder -H bash -lc 'cd ~/libtg_owt-git && makepkg -si --noconfirm --noprogressbar --clean'
 
-      - name: Build ayugram-desktop and its AUR dependencies
+      - name: Build ayugram-desktop
         run: |
-          sudo -u builder -H paru -S --noconfirm --needed --clean ayugram-desktop
+          sudo -u builder -H git clone --depth=1 https://aur.archlinux.org/ayugram-desktop.git /home/builder/ayugram-desktop
+          sudo -u builder -H bash -lc 'cd ~/ayugram-desktop && makepkg -si --noconfirm --noprogressbar --clean'
 
       - name: Collect package
         run: |
           mkdir -p "$GITHUB_WORKSPACE/out"
-          find /home/builder/.cache/paru -type f -name 'ayugram-desktop-[0-9]*.pkg.tar.zst' \
-            -exec cp -v {} "$GITHUB_WORKSPACE/out/" \;
+          cp -v /home/builder/ayugram-desktop/*.pkg.tar.zst "$GITHUB_WORKSPACE/out/"
           ls -lh "$GITHUB_WORKSPACE/out"
 
       - name: Upload package
