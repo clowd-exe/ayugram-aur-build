@@ -1,0 +1,56 @@
+name: Build AUR package
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/build-ayugram.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ayugram-desktop (x86_64)
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    container:
+      image: archlinux:base-devel
+
+    steps:
+      - name: Update Arch container
+        run: |
+          pacman-key --init
+          pacman-key --populate archlinux
+          pacman -Syu --noconfirm --needed git sudo nodejs
+
+      - name: Create unprivileged build user
+        run: |
+          useradd -m -G wheel builder
+          printf '%%wheel ALL=(ALL) NOPASSWD: ALL\n' > /etc/sudoers.d/wheel
+          chmod 0440 /etc/sudoers.d/wheel
+
+      - name: Install paru-bin
+        run: |
+          sudo -u builder -H git clone --depth=1 https://aur.archlinux.org/paru-bin.git /home/builder/paru-bin
+          sudo -u builder -H bash -lc 'cd ~/paru-bin && makepkg -si --noconfirm --noprogressbar'
+
+      - name: Build ayugram-desktop and its AUR dependencies
+        run: |
+          sudo -u builder -H paru -S --noconfirm --needed --clean ayugram-desktop
+
+      - name: Collect package
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/out"
+          find /home/builder/.cache/paru -type f -name 'ayugram-desktop-[0-9]*.pkg.tar.zst' \
+            -exec cp -v {} "$GITHUB_WORKSPACE/out/" \;
+          ls -lh "$GITHUB_WORKSPACE/out"
+
+      - name: Upload package
+        uses: actions/upload-artifact@v4
+        with:
+          name: ayugram-desktop-x86_64
+          path: out/*.pkg.tar.zst
+          if-no-files-found: error
+          retention-days: 30
