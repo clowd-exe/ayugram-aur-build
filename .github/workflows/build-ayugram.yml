@@ -31,6 +31,12 @@ jobs:
           printf '%%wheel ALL=(ALL) NOPASSWD: ALL\n' > /etc/sudoers.d/wheel
           chmod 0440 /etc/sudoers.d/wheel
 
+      - name: Install libtg_owt build dependencies
+        run: |
+          pacman -S --noconfirm --needed \
+            alsa-lib glib2 libdrm libpulse libsrtp libvpx libx11 libxdamage \
+            libxext libxfixes libxrender mesa openh264
+
       - name: Build libtg_owt-git (AUR dependency)
         run: |
           sudo -u builder -H git clone --depth=1 https://aur.archlinux.org/libtg_owt-git.git /home/builder/libtg_owt-git
